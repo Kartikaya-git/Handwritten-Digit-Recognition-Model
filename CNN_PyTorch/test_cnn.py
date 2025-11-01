@@ -12,7 +12,7 @@ model.load_state_dict(torch.load("CNN_PyTorch/mnist_cnn.pth",weights_only=True, 
 model.eval()
 
 # 2. Load your image
-img_path = "/Users/kartikayasrivastava/Desktop/Digit_24oct/digits/nine.jpg"   # <-- change this to your file name
+img_path = "test_images/nine.jpg"   # <-- change this to your file name;
 image = Image.open(img_path) 
 
 transform = transforms.Compose([

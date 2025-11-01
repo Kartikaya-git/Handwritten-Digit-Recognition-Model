@@ -8,7 +8,12 @@ from model_cnn_def import CNN
 
 #Transformations - convert to tensor & normalize
 transform = transforms.Compose([
+    transforms.RandomRotation(10), # rotate by +/- 10 degrees
+    transforms.RandomAffine(0, translate=(0.1, 0.1)), # translate by +/- 10% in both directions
+    transforms.RandomResizedCrop(28, scale=(0.9, 1.1)), # random crop and resize to 28x28
+    transforms.RandomPerspective(distortion_scale=0.3, p=0.5), # perspective transform
     transforms.ToTensor(),                # convert image to tensor
+    transforms.RandomErasing(p=0.3, scale=(0.02, 0.15)), # random erasing a patch from image for model to learn global structure of digits
     transforms.Normalize((0.1307,), (0.3081,))  # mean and std of MNIST
 ])
 
