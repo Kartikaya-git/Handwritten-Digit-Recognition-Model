@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 # Load trained model
 model = DigitClassifier()
-model.load_state_dict(torch.load("mnist_model.pth",weights_only=True))
+model.load_state_dict(torch.load("PyTorch_NN/mnist_model.pth",weights_only=True))
 model.eval()
 
 # Define same preprocessing as training
@@ -15,7 +15,7 @@ transform = transforms.Compose([
     transforms.Grayscale(),
     transforms.Resize((28, 28)),
     transforms.ToTensor(),
-    transforms.Normalize((0.5,), (0.5,))
+    transforms.Normalize((0.1307,), (0.3081,))
 ])
 
 # Path to custom image

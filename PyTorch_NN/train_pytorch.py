@@ -19,15 +19,15 @@ test_data = datasets.MNIST(root='./data', train=False, transform=transform, down
 train_loader = DataLoader(train_data, batch_size=64, shuffle=True)
 test_loader = DataLoader(test_data, batch_size=64, shuffle=False)
 
-fig, axes = plt.subplots(1, 5, figsize=(10, 2))
-for i in range(5):
-    img, label = train_data[i]
-    axes[i].imshow(img.squeeze(), cmap='gray')
-    axes[i].set_title(f"Label: {label}")
-    axes[i].axis('off')
+# fig, axes = plt.subplots(1, 5, figsize=(10, 2))
+# for i in range(5):
+#     img, label = train_data[i]
+#     axes[i].imshow(img.squeeze(), cmap='gray')
+#     axes[i].set_title(f"Label: {label}")
+#     axes[i].axis('off')
 
-plt.tight_layout()
-plt.show()
+# plt.tight_layout()
+# plt.show()
 
 # Initialize model, loss, optimizer
 model = DigitClassifier()
