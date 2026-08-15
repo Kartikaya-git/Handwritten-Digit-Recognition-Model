@@ -1,0 +1,10 @@
+torch
+torchvision
+opencv-python-headless
+pillow
+numpy
+flask
+# training/data tooling
+kagglehub
+kaggle>=2.2.4   # needs Python >=3.11; 1.x cannot use ~/.kaggle/access_token
+matplotlib      # augmentation preview grid in the notebook

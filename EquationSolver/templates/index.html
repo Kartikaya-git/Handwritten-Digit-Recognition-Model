@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Handwritten Equation Solver</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --panel: #171a23;
+    --border: #262b38;
+    --text: #e6e8ee;
+    --muted: #9aa3b2;
+    --accent: #22c55e;
+    --amber: #f59e0b;
+    --red: #ef4444;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f6f7f9; --panel: #ffffff; --border: #e2e5ea;
+      --text: #14171f; --muted: #5c6675;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 2rem 1rem 4rem;
+    font: 15px/1.55 ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+    background: var(--bg); color: var(--text);
+  }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin: 0 0 .25rem; letter-spacing: -.01em; }
+  .sub { color: var(--muted); margin: 0 0 1.75rem; font-size: .92rem; }
+
+  #drop {
+    border: 2px dashed var(--border); border-radius: 14px;
+    padding: 2.5rem 1.5rem; text-align: center; cursor: pointer;
+    background: var(--panel); transition: border-color .15s, background .15s;
+  }
+  #drop:hover, #drop.over { border-color: var(--accent); }
+  #drop.over { background: color-mix(in srgb, var(--accent) 8%, var(--panel)); }
+  #drop p { margin: .4rem 0; }
+  #drop .hint { color: var(--muted); font-size: .85rem; }
+  input[type=file] { display: none; }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 14px; padding: 1.25rem; margin-top: 1.25rem;
+  }
+  .answer { font-size: 2rem; font-weight: 650; letter-spacing: -.02em; margin: 0; }
+  .answer .eq { color: var(--muted); font-weight: 500; }
+  .meta { color: var(--muted); font-size: .87rem; margin-top: .35rem; }
+
+  img.shot { max-width: 100%; border-radius: 10px; display: block; }
+
+  table { width: 100%; border-collapse: collapse; margin-top: .5rem; font-size: .9rem; }
+  th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 550; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
+  td.sym { font-size: 1.1rem; font-weight: 600; }
+  .bar { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; min-width: 90px; }
+  .bar span { display: block; height: 100%; background: var(--accent); }
+  .bar.low span { background: var(--amber); }
+
+  .err { color: var(--red); font-weight: 550; }
+  .muted { color: var(--muted); }
+  details { margin-top: 1rem; }
+  summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
+  .spinner {
+    width: 18px; height: 18px; border: 2px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin .7s linear infinite; display: inline-block; vertical-align: -3px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hidden { display: none; }
+
+  .examples { margin-top: .85rem; display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; font-size: .88rem; }
+  .chip {
+    font: inherit; color: var(--text); background: var(--panel);
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: .3rem .8rem; cursor: pointer; transition: border-color .15s;
+  }
+  .chip:hover { border-color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Handwritten Equation Solver</h1>
+  <p class="sub">
+    Segments an image into symbols, classifies each with a CNN, then parses and solves.
+    Digits <code>0-9</code> and <code>+ &minus; &times; &divide;</code>. Works with dark ink on
+    light paper or light on dark &mdash; polarity is detected automatically.
+  </p>
+
+  <div id="drop">
+    <p><strong>Drop an image here</strong> or click to choose</p>
+    <p class="hint">PNG / JPG &middot; a photo of one line of handwriting works best</p>
+  </div>
+  <input type="file" id="file" accept="image/png,image/jpeg,image/bmp,image/webp">
+
+  {% if examples %}
+  <div class="examples">
+    <span class="muted">or try:</span>
+    {% for ex in examples %}
+      <button class="chip" data-example="{{ ex.name }}" title="{{ ex.note }}">{{ ex.name }}</button>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div id="loading" class="card hidden">
+    <span class="spinner"></span> &nbsp;analysing&hellip;
+  </div>
+
+  <div id="out"></div>
+</div>
+
+<script>
+const drop = document.getElementById('drop');
+const file = document.getElementById('file');
+const out = document.getElementById('out');
+const loading = document.getElementById('loading');
+
+drop.addEventListener('click', () => file.click());
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+drop.addEventListener('drop', e => {
+  e.preventDefault();
+  drop.classList.remove('over');
+  if (e.dataTransfer.files.length) send(e.dataTransfer.files[0]);
+});
+file.addEventListener('change', () => { if (file.files.length) send(file.files[0]); });
+
+document.querySelectorAll('[data-example]').forEach(btn => {
+  btn.addEventListener('click', () => runExample(btn.dataset.example));
+});
+
+async function runExample(name) {
+  out.innerHTML = '';
+  loading.classList.remove('hidden');
+  try {
+    const res = await fetch('/example/' + encodeURIComponent(name), { method: 'POST' });
+    render(await res.json());
+  } catch (err) {
+    out.innerHTML = `<div class="card"><p class="err">Request failed: ${esc(err.message)}</p></div>`;
+  } finally {
+    loading.classList.add('hidden');
+  }
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => (
+    {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]
+  ));
+}
+
+async function send(f) {
+  out.innerHTML = '';
+  loading.classList.remove('hidden');
+  const fd = new FormData();
+  fd.append('image', f);
+  try {
+    const res = await fetch('/predict', { method: 'POST', body: fd });
+    const data = await res.json();
+    render(data);
+  } catch (err) {
+    out.innerHTML = `<div class="card"><p class="err">Request failed: ${esc(err.message)}</p></div>`;
+  } finally {
+    loading.classList.add('hidden');
+  }
+}
+
+function render(d) {
+  if (d.error) {
+    out.innerHTML = `
+      <div class="card">
+        <p class="err">Could not solve this image</p>
+        <p class="muted">${esc(d.error)}</p>
+        ${d.normalized ? `<details open><summary>What the segmenter saw</summary>
+          <img class="shot" style="margin-top:.75rem" src="data:image/png;base64,${d.normalized}"></details>` : ''}
+      </div>`;
+    return;
+  }
+
+  const rows = d.symbols.map((s, i) => {
+    const c = d.confidences[i];
+    const pct = (c * 100).toFixed(1);
+    return `<tr>
+      <td class="sym">${esc(s)}</td>
+      <td style="width:55%"><div class="bar ${c < 0.8 ? 'low' : ''}"><span style="width:${pct}%"></span></div></td>
+      <td class="muted">${pct}%</td>
+    </tr>`;
+  }).join('');
+
+  out.innerHTML = `
+    <div class="card">
+      <p class="answer"><span class="eq">${esc(d.expression)} =</span> ${esc(d.result)}</p>
+      <p class="meta">${d.symbols.length} symbol${d.symbols.length === 1 ? '' : 's'} detected
+        &middot; mean confidence ${(d.avg_confidence * 100).toFixed(1)}%</p>
+    </div>
+    <div class="card">
+      <img class="shot" src="data:image/png;base64,${d.annotated}">
+      <table>
+        <thead><tr><th>Symbol</th><th>Confidence</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <details>
+        <summary>What the segmenter saw (after polarity normalization)</summary>
+        <img class="shot" style="margin-top:.75rem" src="data:image/png;base64,${d.normalized}">
+      </details>
+    </div>`;
+}
+</script>
+</body>
+</html>
