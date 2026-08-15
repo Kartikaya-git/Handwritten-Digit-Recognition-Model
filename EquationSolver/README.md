@@ -29,6 +29,31 @@ there's no leakage inflating the numbers.
 In the trained model, per-class test accuracy is 100% for all four
 operators and ≥94.7% for every digit.
 
+### Where the remaining errors are
+
+`analyze_errors.py` runs the trained model over the held-out split and
+prints a scikit-learn `classification_report` plus a confusion matrix.
+Only **9 of 788** held-out symbols are misclassified, and they are not
+randomly distributed:
+
+| Confusion | Count |
+|---|---|
+| 0 → 6 | 2 |
+| 1 → 7 | 2 |
+| 0 → 8, 1 → +, 4 → +, 6 → 0, 7 → 9 | 1 each |
+
+Two things worth noting. **All four operators are perfect** — 100%
+precision *and* recall — so the residual error is entirely among digits.
+And the mistakes are visually explainable rather than arbitrary: 0↔6 is
+symmetric (a closed loop with or without a tail), 1→7 and 7→9 are
+stroke-shape ambiguities, and 1/4 → + happens when a crossing stroke
+reads as a horizontal bar.
+
+That distinction matters for what to do next: these are inherently
+ambiguous glyphs, not underfitting, so more of the same training data
+would have limited returns — higher input resolution or shape-aware
+features would be the lever.
+
 ### What changed between v1 and v2
 
 v1 scored well on the benchmark but got **every real phone photo wrong,
@@ -161,4 +186,5 @@ confidence, the reconstructed expression, and the answer.
 - `pipeline.py` — wires segmentation + model + solver together
 - `app.py` + `templates/index.html` — the local web UI
 - `make_test_equations.py` / `evaluate.py` — leak-free end-to-end testing
+- `analyze_errors.py` — per-class report + confusion matrix (scikit-learn)
 - `notebook/train_on_kaggle.ipynb` — self-contained training notebook

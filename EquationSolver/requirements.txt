@@ -4,6 +4,7 @@ opencv-python-headless
 pillow
 numpy
 flask
+scikit-learn    # classification_report / confusion_matrix in analyze_errors.py
 # training/data tooling
 kagglehub
 kaggle>=2.2.4   # needs Python >=3.11; 1.x cannot use ~/.kaggle/access_token
