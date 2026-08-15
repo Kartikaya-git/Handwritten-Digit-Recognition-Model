@@ -6,6 +6,11 @@ classification (digits 0-9 + operators + − × ÷) → rule-based parsing → s
 Training happens on Kaggle (GPU), not locally. Everything else
 (segmentation, parsing, evaluation) runs locally in `.venv`.
 
+> **See [`PROJECT_NOTES.md`](PROJECT_NOTES.md)** for design decisions,
+> what was tried and rejected, measured failure modes, honest limitations,
+> and future scope (including the segmentation alternatives that were
+> researched and deferred).
+
 ## Results (measured, not aspirational)
 
 Trained on `sagyamthapa/handwritten-math-symbols` (14 classes: digits 0-9 +
